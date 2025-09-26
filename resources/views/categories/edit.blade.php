@@ -1,88 +1,51 @@
 @extends('home')
+
 @section('js_before')
-@include('sweetalert::alert')
-@section('header')
-@section('sidebarMenu')   
+  @include('sweetalert::alert')
+@endsection
+
 @section('content')
+  <h3>:: Edit Category ::</h3>
 
-    <h3> :: form Update Student :: </h3>
+  <form action="{{ route('category.update', $id) }}" method="POST">
+    @csrf
+    @method('PUT')
 
-    <form action="/student/{{ $id }}" method="post" enctype="multipart/form-data">
-        @csrf
-        @method('put')
+    {{-- ชื่อหมวดหมู่ --}}
+    <div class="form-group row mb-2">
+      <label class="col-sm-2">ชื่อหมวดหมู่ <span class="text-danger">*</span></label>
+      <div class="col-sm-7">
+        <input type="text" class="form-control" name="category_name" required minlength="3"
+               value="{{ old('category_name', $category_name) }}">
+        @error('category_name') <div class="text-danger">{{ $message }}</div> @enderror
+      </div>
+    </div>
 
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> Student Name </label>
-            <div class="col-sm-7">
-                <input type="text" class="form-control" name="std_name" required placeholder="Student Name "
-                    minlength="3" value="{{ $std_name }}">
-                @if(isset($errors))
-                @if($errors->has('std_name'))
-                <div class="text-danger"> {{ $errors->first('std_name') }}</div>
-                @endif
-                @endif
-            </div>
-        </div>
+    {{-- รายละเอียด (ไม่บังคับ) --}}
+    <div class="form-group row mb-3">
+      <label class="col-sm-2">รายละเอียด</label>
+      <div class="col-sm-7">
+        <textarea name="description" class="form-control" rows="4"
+                  placeholder="รายละเอียดหมวดหมู่ (ถ้ามี)">{{ old('description', $description) }}</textarea>
+        @error('description') <div class="text-danger">{{ $message }}</div> @enderror
+      </div>
+    </div>
 
+    {{-- วันที่เพิ่ม (แสดงอย่างเดียว) --}}
+    <div class="form-group row mb-3">
+      <label class="col-sm-2">วันที่เพิ่ม</label>
+      <div class="col-sm-7">
+        <input type="text" class="form-control" value="{{ \Carbon\Carbon::parse($created_at)->format('Y-m-d H:i') }}" readonly>
+      </div>
+    </div>
 
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> Student Phone </label>
-            <div class="col-sm-7">
-                <input type="text" class="form-control" name="std_phone" required placeholder="Student Phone "
-                    minlength="3" value="{{ old('std_phone') }}">
-                @if(isset($errors))
-                @if($errors->has('std_phone'))
-                <div class="text-danger"> {{ $errors->first('std_phone') }}</div>
-                @endif
-                @endif
-            </div>
-        </div>
-
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> Student code </label>
-            <div class="col-sm-7">
-               <input type="text" class="form-control" name="std_code" required placeholder="Student Code "
-                    minlength="3" value="{{ $std_code }}">
-                @if(isset($errors))
-                @if($errors->has('std_code'))
-                <div class="text-danger"> {{ $errors->first('std_code') }}</div>
-                @endif
-                @endif
-            </div>
-        </div>
-
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> Pic </label>
-            <div class="col-sm-6">
-                <input type="file" name="std_img" required placeholder="std_img" accept="image/*">
-                @if(isset($errors))
-                @if($errors->has('std_img'))
-                <div class="text-danger"> {{ $errors->first('std_img') }}</div>
-                @endif
-                @endif
-            </div>
-        </div>
-
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> </label>
-            <div class="col-sm-5">
-                <input type="hidden" name="oldImg" value="{{ $std_img }}">
-                <button type="submit" class="btn btn-primary"> Update </button>
-                <a href="/student" class="btn btn-danger">cancel</a>
-            </div>
-        </div>
-
-    </form>
-</div>
-
-
+    {{-- ปุ่ม --}}
+    <div class="form-group row mb-2">
+      <label class="col-sm-2"></label>
+      <div class="col-sm-7">
+        <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
+        <a href="{{ route('category.index') }}" class="btn btn-danger">ยกเลิก</a>
+      </div>
+    </div>
+  </form>
 @endsection
-
-
-@section('footer')
-@endsection
-
-@section('js_before')
-@endsection
-
-{{-- devbanban.com --}}

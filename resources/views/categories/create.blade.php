@@ -1,93 +1,40 @@
 @extends('home')
-@section('css_before')
-@endsection
-@section('header')
-@endsection
-@section('sidebarMenu')   
-@endsection
+
 @section('content')
- 
+  <h3>:: Form Add Category ::</h3>
 
+  <form action="{{ route('category.store') }}" method="POST">
+    @csrf
 
-    <h3> :: Form Add Student :: </h3>
+    {{-- ชื่อหมวดหมู่ --}}
+    <div class="form-group row mb-2">
+      <label class="col-sm-2">ชื่อหมวดหมู่ <span class="text-danger">*</span></label>
+      <div class="col-sm-7">
+        <input type="text" class="form-control" name="category_name" required minlength="3"
+               placeholder="เช่น อุปกรณ์ไฟฟ้า"
+               value="{{ old('category_name') }}">
+        @error('category_name') <div class="text-danger">{{ $message }}</div> @enderror
+      </div>
+    </div>
 
-    <form action="/student/" method="post" enctype="multipart/form-data">
-        @csrf
+    {{-- รายละเอียด (ไม่บังคับ) --}}
+    <div class="form-group row mb-2">
+      <label class="col-sm-2">รายละเอียด</label>
+      <div class="col-sm-7">
+        <textarea name="description" class="form-control" rows="4"
+                  placeholder="รายละเอียดหมวดหมู่ (ถ้ามี)">{{ old('description') }}</textarea>
+        @error('description') <div class="text-danger">{{ $message }}</div> @enderror
+        <small class="text-muted">* วันที่เพิ่มจะบันทึกอัตโนมัติ</small>
+      </div>
+    </div>
 
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> Student Name </label>
-            <div class="col-sm-7">
-                <input type="text" class="form-control" name="std_name" required placeholder="Student Name "
-                    minlength="3" value="{{ old('std_name') }}">
-                @if(isset($errors))
-                @if($errors->has('std_name'))
-                <div class="text-danger"> {{ $errors->first('std_name') }}</div>
-                @endif
-                @endif
-            </div>
-        </div>
-
-
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> Student Phone </label>
-            <div class="col-sm-7">
-                <input type="text" class="form-control" name="std_phone" required placeholder="Student Phone "
-                    minlength="3" value="{{ old('std_phone') }}">
-                @if(isset($errors))
-                @if($errors->has('std_phone'))
-                <div class="text-danger"> {{ $errors->first('std_phone') }}</div>
-                @endif
-                @endif
-            </div>
-        </div>
-
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> Student code </label>
-            <div class="col-sm-7">
-               <input type="text" class="form-control" name="std_code" required placeholder="Student Code "
-                    minlength="3" value="{{ old('std_code') }}">
-                @if(isset($errors))
-                @if($errors->has('std_code'))
-                <div class="text-danger"> {{ $errors->first('std_code') }}</div>
-                @endif
-                @endif
-            </div>
-        </div>
-
-       
-
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> Pic </label>
-            <div class="col-sm-6">
-                <input type="file" name="std_img" required placeholder="std_img" accept="image/*">
-                @if(isset($errors))
-                @if($errors->has('std_img'))
-                <div class="text-danger"> {{ $errors->first('std_img') }}</div>
-                @endif
-                @endif
-            </div>
-        </div>
-
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"> </label>
-            <div class="col-sm-5">
-
-                <button type="submit" class="btn btn-primary"> Insert Student </button>
-                <a href="/student" class="btn btn-danger">cancel</a>
-            </div>
-        </div>
-
-    </form>
-
-</div>
-
-    
+    {{-- ปุ่ม --}}
+    <div class="form-group row mb-2">
+      <label class="col-sm-2"></label>
+      <div class="col-sm-7">
+        <button type="submit" class="btn btn-primary">บันทึก</button>
+        <a href="{{ route('category.index') }}" class="btn btn-danger">ยกเลิก</a>
+      </div>
+    </div>
+  </form>
 @endsection
-
-@section('footer')
-@endsection
-
-@section('js_before')
-@endsection
-
-{{-- devbanban.com --}}

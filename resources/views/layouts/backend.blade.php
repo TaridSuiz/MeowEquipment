@@ -36,10 +36,11 @@
 
             <a href="/product" class="list-group-item list-group-item-action"> - Product </a>
 
-            <a href="/student" class="list-group-item list-group-item-action"> - Student </a><<<<<<< --}}
+            <<<<<<< --}}
 
             <a href="/user" class="list-group-item list-group-item-action"> - Register </a>
-
+            
+            <a href="/category" class="list-group-item list-group-item-action"> - Category </a>
 
  
           
