@@ -13,4 +13,6 @@ class CategorieModel extends Model
         'created_at',];
     public $incrementing = true; // ถ้า primary key เป็นตัวเลข auto increment
     public $timestamps = false;
+    
+    public function merchandise() { return $this->hasMany(MerchandiseModel::class,'category_id','category_id'); }
 }

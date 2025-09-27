@@ -42,7 +42,10 @@
             
             <a href="/category" class="list-group-item list-group-item-action"> - Category </a>
 
- 
+             <a href="/merchandise" class="list-group-item list-group-item-action"> - Merchandise </a>
+
+
+            
           
           </div>
           @yield('sidebarMenu')

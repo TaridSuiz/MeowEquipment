@@ -8,7 +8,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CatagorieController;
-
+use App\Http\Controllers\MerchandiseController;
 
 //home page
 Route::get('/', [UserController::class, 'index']);
@@ -17,23 +17,34 @@ Route::get('/', [UserController::class, 'index']);
 
 
 //admins crud
-Route::get('/user', [UserController::class, 'index']);
-Route::get('/user/adding',  [UserController::class, 'adding']);
-Route::post('/user',  [UserController::class, 'create']);
-Route::get('/user/{id}',  [UserController::class, 'edit']);
-Route::put('/user/{id}',  [UserController::class, 'update']);
-Route::delete('/user/remove/{id}',  [UserController::class, 'remove']);
-// web.php
+// Users Routes
+Route::get('/user', [UserController::class, 'index'])->name('user.index');
+Route::get('/user/adding', [UserController::class, 'adding'])->name('user.create');
+Route::post('/user', [UserController::class, 'create'])->name('user.store');
+Route::get('/user/{id}', [UserController::class, 'edit'])->name('user.edit');
+Route::put('/user/{id}', [UserController::class, 'update'])->name('user.update');
+Route::delete('/user/remove/{id}', [UserController::class, 'remove'])->name('user.destroy');
+
+// Reset password
 Route::get('/user/reset/{id}', [UserController::class, 'reset'])->name('user.reset');
 Route::put('/user/reset/{id}', [UserController::class, 'resetPassword'])->name('user.reset.update');
 
+// Category Routes
+Route::get('/category', [CatagorieController::class,'index'])->name('category.index');           // แสดงรายการ
+Route::get('/category/create', [CatagorieController::class,'adding'])->name('category.create');  // ฟอร์มเพิ่ม
+Route::post('/category', [CatagorieController::class,'create'])->name('category.store');         // บันทึกเพิ่มใหม่
+Route::get('/category/{id}/edit', [CatagorieController::class,'edit'])->name('category.edit');   // ฟอร์มแก้ไข
+Route::put('/category/{id}', [CatagorieController::class,'update'])->name('category.update');    // บันทึกแก้ไข
+Route::delete('/category/{id}', [CatagorieController::class,'remove'])->name('category.destroy');// ลบ
 
-Route::get('/category', [CatagorieController::class,'index'])->name('category.index');
-Route::get('/category/adding', [CatagorieController::class,'adding'])->name('category.create');
-Route::post('/category', [CatagorieController::class,'create'])->name('category.store');
-Route::get('/category/{id}', [CatagorieController::class,'edit'])->name('category.edit');
-Route::put('/category/{id}', [CatagorieController::class,'update'])->name('category.update');
-Route::delete('/category/remove/{id}', [CatagorieController::class,'remove'])->name('category.destroy');
+
+// Merchandise Routes
+Route::get('/merchandise', [MerchandiseController::class, 'index'])->name('merchandise.index');
+Route::get('/merchandise/adding', [MerchandiseController::class, 'adding'])->name('merchandise.create');
+Route::post('/merchandise', [MerchandiseController::class, 'create'])->name('merchandise.store');
+Route::get('/merchandise/{id}', [MerchandiseController::class, 'edit'])->name('merchandise.edit');
+Route::put('/merchandise/{id}', [MerchandiseController::class, 'update'])->name('merchandise.update');
+Route::delete('/merchandise/remove/{id}', [MerchandiseController::class, 'remove'])->name('merchandise.destroy');
 
 
 

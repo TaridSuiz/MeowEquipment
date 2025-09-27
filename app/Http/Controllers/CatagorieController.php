@@ -1,20 +1,35 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\CategorieModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use RealRashid\SweetAlert\Facades\Alert;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Validation\Rule;
+use Illuminate\Database\QueryException;
 
 class CatagorieController extends Controller
 {
     /** GET /category */
-    public function index()
+    public function index(Request $request)
     {
         Paginator::useBootstrap();
-        $categories = CategorieModel::orderBy('category_id', 'desc')->paginate(5);
+
+        $q = CategorieModel::query();
+
+        // simple search by name/description
+        if ($s = $request->get('s')) {
+            $s = trim($s);
+            $q->where(function ($w) use ($s) {
+                $w->where('category_name', 'like', "%{$s}%")
+                  ->orWhere('description', 'like', "%{$s}%");
+            });
+        }
+
+        $categories = $q->orderBy('category_id', 'desc')->paginate(5)->withQueryString();
+
         return view('categories.list', compact('categories'));
     }
 
@@ -36,24 +51,23 @@ class CatagorieController extends Controller
 
         $validator = Validator::make($request->all(), [
             'category_name' => 'required|min:3|unique:tbl_categories,category_name',
-            'description'   => 'nullable|max:65535', // TEXT
+            'description'   => 'nullable|max:65535',
         ], $messages);
 
         if ($validator->fails()) {
-            return redirect('category/adding')->withErrors($validator)->withInput();
+            return redirect()->route('category.create')->withErrors($validator)->withInput();
         }
 
         try {
             CategorieModel::create([
-                'category_name' => strip_tags($request->category_name),
-                'description'   => $request->description ? strip_tags($request->description) : null,
+                'category_name' => strip_tags(trim($request->category_name)),
+                'description'   => $request->filled('description') ? strip_tags(trim($request->description)) : null,
                 'created_at'    => now(),
             ]);
 
             Alert::success('Insert Successfully');
-            return redirect('/category'); // หรือ ->route('category.index') ถ้าตั้งชื่อ route
+            return redirect()->route('category.index');
         } catch (\Exception $e) {
-            // return response()->json(['error' => $e->getMessage()], 500);
             return view('errors.404');
         }
     }
@@ -64,16 +78,13 @@ class CatagorieController extends Controller
         try {
             $category = CategorieModel::findOrFail($id);
 
-            if (isset($category)) {
-                $id            = $category->category_id;
-                $category_name = $category->category_name;
-                $description   = $category->description;
-                $created_at    = $category->created_at;
-
-                return view('categories.edit', compact(
-                    'id', 'category_name', 'description', 'created_at'
-                ));
-            }
+            // ส่งค่าเดิมไปให้ Blade
+            return view('categories.edit', [
+                'id'            => $category->category_id,
+                'category_name' => $category->category_name,
+                'description'   => $category->description,
+                'created_at'    => $category->created_at,
+            ]);
         } catch (\Exception $e) {
             return view('errors.404');
         }
@@ -98,22 +109,19 @@ class CatagorieController extends Controller
         ], $messages);
 
         if ($validator->fails()) {
-            return redirect('category/' . $id)->withErrors($validator)->withInput();
+            return redirect()->route('category.edit', $id)->withErrors($validator)->withInput();
         }
 
         try {
             $category = CategorieModel::findOrFail($id);
 
-            $category->category_name = strip_tags($request->category_name);
-            $category->description   = $request->description ? strip_tags($request->description) : null;
-            // $category->created_at  // ปกติไม่แก้ created_at ตอน update
-
+            $category->category_name = strip_tags(trim($request->category_name));
+            $category->description   = $request->filled('description') ? strip_tags(trim($request->description)) : null;
             $category->save();
 
             Alert::success('Update Successfully');
-            return redirect('/category'); // หรือ ->route('category.index')
+            return redirect()->route('category.index');
         } catch (\Exception $e) {
-            // return response()->json(['error' => $e->getMessage()], 500);
             return view('errors.404');
         }
     }
@@ -126,16 +134,26 @@ class CatagorieController extends Controller
 
             if (!$category) {
                 Alert::error('Category not found.');
-                return redirect('/category');
+                return redirect()->route('category.index');
             }
 
             $category->delete();
 
             Alert::success('Delete Successfully');
-            return redirect('/category');
+            return redirect()->route('category.index');
+
+        } catch (QueryException $e) {
+            // รหัส error 1451 (MySQL) = Cannot delete or update a parent row: a foreign key constraint fails
+            if ((int)$e->getCode() === 23000) {
+                Alert::error('ไม่สามารถลบได้: หมวดหมู่นี้ถูกใช้งานโดยสินค้าอยู่');
+                return redirect()->route('category.index');
+            }
+            Alert::error('เกิดข้อผิดพลาด: ' . $e->getMessage());
+            return redirect()->route('category.index');
+
         } catch (\Exception $e) {
             Alert::error('เกิดข้อผิดพลาด: ' . $e->getMessage());
-            return redirect('/category');
+            return redirect()->route('category.index');
         }
     }
 }

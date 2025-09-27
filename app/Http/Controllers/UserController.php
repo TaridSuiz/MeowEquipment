@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\UserModel;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use RealRashid\SweetAlert\Facades\Alert;
-use Illuminate\Support\Facades\Auth;
-
-
-use App\Models\UserModel;
 
 class UserController extends Controller
 {
@@ -51,19 +49,19 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name'        => 'required|min:3',
             'email'       => 'required|email|unique:tbl_user,email',
-            // อย่างน้อย 8 ตัวอักษร และต้องมี a-z, A-Z, และตัวเลข
             'password'    => [
                 'required',
                 'min:8',
+                // อย่างน้อย 8 ตัวอักษร และต้องมี a-z, A-Z, และตัวเลข
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/'
             ],
-            // อาจไม่ส่งมาก็ได้ จะ default เป็น user
+            // ถ้าไม่ส่งมา จะ default เป็น user
             'role'        => ['nullable', Rule::in(['admin','user'])],
             'profile_img' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         ], $messages);
 
         if ($validator->fails()) {
-            return redirect('user/adding')->withErrors($validator)->withInput();
+            return redirect()->route('user.create')->withErrors($validator)->withInput();
         }
 
         try {
@@ -75,17 +73,16 @@ class UserController extends Controller
             UserModel::create([
                 'name'        => strip_tags($request->name),
                 'email'       => strtolower($request->email),
-                // bcrypt ด้วย Hash::make
-                'password'    => Hash::make($request->password),
-                // หากไม่ได้ส่ง role มา ให้ตั้งต้นเป็น user
+                'password'    => Hash::make($request->password), // bcrypt
                 'role'        => $request->role ?: 'user',
                 'profile_img' => $imagePath,
             ]);
 
             Alert::success('เพิ่มผู้ใช้สำเร็จ');
-            return redirect('/user');
+            return redirect()->route('user.index');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            // return response()->json(['error' => $e->getMessage()], 500);
+            return view('errors.404');
         }
     }
 
@@ -115,27 +112,29 @@ class UserController extends Controller
             'profile_img.max'      => 'ขนาดไฟล์ไม่เกิน 5MB',
         ];
 
-        $validator = Validator::make($request->all(), [
+        // Base rules
+        $rules = [
             'name'        => 'required|min:3',
-            'email'       => [
-                'required', 'email',
-                Rule::unique('tbl_user', 'email')->ignore($id, 'user_id'),
-            ],
-            // อนุญาตผ่าน validation เฉพาะค่าในชุด แต่จะอัปเดตจริงเฉพาะ admin
-            'role'        => ['required', Rule::in(['admin','user'])],
+            'email'       => ['required', 'email', Rule::unique('tbl_user', 'email')->ignore($id, 'user_id')],
             'profile_img' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
-        ], $messages);
+        ];
 
+        // Validate role เฉพาะ admin เท่านั้น
+        if (Auth::check() && Auth::user()->role === 'admin') {
+            $rules['role'] = ['required', Rule::in(['admin','user'])];
+        }
+
+        $validator = Validator::make($request->all(), $rules, $messages);
         if ($validator->fails()) {
-            return redirect('user/' . $id)->withErrors($validator)->withInput();
+            return redirect()->route('user.edit', $id)->withErrors($validator)->withInput();
         }
 
         try {
             $user = UserModel::findOrFail($id);
 
-            // อัปเดตรูปหากมีการอัปโหลดใหม่
+            // อัปโหลดรูปใหม่ (ถ้ามี)
             if ($request->hasFile('profile_img')) {
-                if ($user->profile_img) {
+                if ($user->profile_img && Storage::disk('public')->exists($user->profile_img)) {
                     Storage::disk('public')->delete($user->profile_img);
                 }
                 $user->profile_img = $request->file('profile_img')->store('uploads/users', 'public');
@@ -144,17 +143,18 @@ class UserController extends Controller
             $user->name  = strip_tags($request->name);
             $user->email = strtolower($request->email);
 
-            // อนุญาตให้เปลี่ยน role เฉพาะ admin เท่านั้น
-            if (Auth::check() && Auth::user()->role === 'admin') {
-    $user->role = $request->role;
-}
+            // เปลี่ยน role ได้เฉพาะ admin
+            if (Auth::check() && Auth::user()->role === 'admin' && $request->filled('role')) {
+                $user->role = $request->role;
+            }
 
             $user->save();
 
             Alert::success('แก้ไขผู้ใช้สำเร็จ');
-            return redirect('/user');
+            return redirect()->route('user.index');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            // return response()->json(['error' => $e->getMessage()], 500);
+            return view('errors.404');
         }
     }
 
@@ -166,9 +166,25 @@ class UserController extends Controller
 
             if (!$user) {
                 Alert::error('ไม่พบผู้ใช้');
-                return redirect('user');
+                return redirect()->route('user.index');
             }
 
+            // กันลบตัวเอง
+            if (Auth::check() && Auth::id() == $user->user_id) {
+                Alert::error('ไม่สามารถลบบัญชีของตนเองได้');
+                return redirect()->route('user.index');
+            }
+
+            // ถ้าเป็น admin ให้เช็กว่าไม่ใช่ admin คนสุดท้าย
+            if ($user->role === 'admin') {
+                $adminCount = UserModel::where('role', 'admin')->count();
+                if ($adminCount <= 1) {
+                    Alert::error('ไม่สามารถลบผู้ดูแลระบบคนสุดท้ายได้');
+                    return redirect()->route('user.index');
+                }
+            }
+
+            // ลบรูปโปรไฟล์ถ้ามี
             if ($user->profile_img && Storage::disk('public')->exists($user->profile_img)) {
                 Storage::disk('public')->delete($user->profile_img);
             }
@@ -176,11 +192,10 @@ class UserController extends Controller
             $user->delete();
 
             Alert::success('ลบผู้ใช้สำเร็จ');
-            return redirect('user');
+            return redirect()->route('user.index');
         } catch (\Exception $e) {
             Alert::error('เกิดข้อผิดพลาด: ' . $e->getMessage());
-            return redirect('user');
-             //return response()->json(['error' => $e->getMessage()], 500);
+            return redirect()->route('user.index');
         }
     }
 
@@ -191,7 +206,7 @@ class UserController extends Controller
             $user = UserModel::findOrFail($id);
             return view('user.reset', compact('user'));
         } catch (\Exception $e) {
-            //return view('errors.404');
+            // return view('errors.404');
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -212,23 +227,24 @@ class UserController extends Controller
                 'min:8',
                 // อย่างน้อย 8 ตัวอักษร และต้องมี a-z, A-Z, และตัวเลข
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/',
-                'confirmed' // ต้องมี input ชื่อ password_confirmation
+                'confirmed', // ต้องมี input ชื่อ password_confirmation
             ],
         ], $messages);
 
         if ($validator->fails()) {
-            return redirect('user/reset/' . $id)->withErrors($validator)->withInput();
+            return redirect()->route('user.reset', $id)->withErrors($validator)->withInput();
         }
 
         try {
             $user = UserModel::findOrFail($id);
-            $user->password = Hash::make($request->password); // bcrypt
+            $user->password = Hash::make($request->password);
             $user->save();
 
             Alert::success('รีเซ็ตรหัสผ่านสำเร็จ');
-            return redirect('/user');
+            return redirect()->route('user.index');
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            // return response()->json(['error' => $e->getMessage()], 500);
+            return view('errors.404');
         }
     }
 }

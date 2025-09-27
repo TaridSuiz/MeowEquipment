@@ -1,68 +1,70 @@
 @extends('home')
 
 @section('content')
-    <h3> :: Form Add User :: </h3>
+  <h3>:: Create User ::</h3>
 
-    <form action="/user" method="post" enctype="multipart/form-data">
-        @csrf
+  <form action="{{ route('user.store') }}" method="POST" enctype="multipart/form-data">
+    @csrf
 
-        {{-- Email --}}
-        <div class="form-group row mb-2">
-            <label class="col-sm-2">Email</label>
-            <div class="col-sm-7">
-                <input type="email" class="form-control" name="email" required
-                       placeholder="Email Address" value="{{ old('email') }}">
-                @if($errors->has('email'))
-                    <div class="text-danger">{{ $errors->first('email') }}</div>
-                @endif
-            </div>
-        </div>
+    {{-- Name --}}
+    <div class="mb-3 row">
+      <label class="col-sm-2 col-form-label">Name *</label>
+      <div class="col-sm-7">
+        <input type="text" name="name" class="form-control" required minlength="3"
+               value="{{ old('name') }}">
+        @error('name') <div class="text-danger">{{ $message }}</div> @enderror
+      </div>
+    </div>
 
-        {{-- Name --}}
-        <div class="form-group row mb-2">
-            <label class="col-sm-2">User Name</label>
-            <div class="col-sm-7">
-                <input type="text" class="form-control" name="name" required
-                       placeholder="Full Name" minlength="3" value="{{ old('name') }}">
-                @if($errors->has('name'))
-                    <div class="text-danger">{{ $errors->first('name') }}</div>
-                @endif
-            </div>
-        </div>
+    {{-- Email --}}
+    <div class="mb-3 row">
+      <label class="col-sm-2 col-form-label">Email *</label>
+      <div class="col-sm-7">
+        <input type="email" name="email" class="form-control" required
+               value="{{ old('email') }}">
+        @error('email') <div class="text-danger">{{ $message }}</div> @enderror
+      </div>
+    </div>
 
-        {{-- Password --}}
-        <div class="form-group row mb-2">
-            <label class="col-sm-2">Password</label>
-            <div class="col-sm-7">
-                <input type="password" class="form-control" name="password" required minlength="6"
-                       placeholder="Password">
-                @if($errors->has('password'))
-                    <div class="text-danger">{{ $errors->first('password') }}</div>
-                @endif
-            </div>
-        </div>
+    {{-- Password --}}
+    <div class="mb-3 row">
+      <label class="col-sm-2 col-form-label">Password *</label>
+      <div class="col-sm-7">
+        <input type="password" name="password" class="form-control" required minlength="8"
+               placeholder="อย่างน้อย 8 ตัว, มี a-z, A-Z, 0-9">
+        @error('password') <div class="text-danger">{{ $message }}</div> @enderror
+      </div>
+    </div>
 
-        {{-- Profile Image --}}
-        <div class="form-group row mb-2">
-            <label class="col-sm-2">Profile Image</label>
-            <div class="col-sm-6">
-                <input type="file" name="profile_img" accept="image/*">
-                @if($errors->has('profile_img'))
-                    <div class="text-danger">{{ $errors->first('profile_img') }}</div>
-                @endif
-            </div>
-        </div>
+    {{-- Role (optional, default user) --}}
+    <div class="mb-3 row">
+      <label class="col-sm-2 col-form-label">Role</label>
+      <div class="col-sm-4">
+        <select name="role" class="form-select">
+          <option value="" {{ old('role')==='' ? 'selected' : '' }}>— default: user —</option>
+          <option value="user"  @selected(old('role')==='user')>user</option>
+          <option value="admin" @selected(old('role')==='admin')>admin</option>
+        </select>
+        @error('role') <div class="text-danger">{{ $message }}</div> @enderror
+      </div>
+    </div>
 
-        {{-- Hidden role = user --}}
-        <input type="hidden" name="role" value="user">
+    {{-- Avatar --}}
+    <div class="mb-4 row">
+      <label class="col-sm-2 col-form-label">Avatar</label>
+      <div class="col-sm-7">
+        <input type="file" name="profile_img" class="form-control" accept="image/*">
+        <small class="text-muted">jpeg/png/jpg ไม่เกิน 5MB</small>
+        @error('profile_img') <div class="text-danger">{{ $message }}</div> @enderror
+      </div>
+    </div>
 
-        {{-- Buttons --}}
-        <div class="form-group row mb-2">
-            <label class="col-sm-2"></label>
-            <div class="col-sm-5">
-                <button type="submit" class="btn btn-primary">Save User</button>
-                <a href="/user" class="btn btn-danger">Cancel</a>
-            </div>
-        </div>
-    </form>
+    <div class="row mb-3">
+      <label class="col-sm-2"></label>
+      <div class="col-sm-7">
+        <button type="submit" class="btn btn-primary">Create</button>
+        <a href="{{ route('user.index') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </div>
+  </form>
 @endsection
