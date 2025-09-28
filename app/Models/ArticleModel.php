@@ -19,8 +19,6 @@ class ArticleModel extends Model
     public $timestamps = false;
 
     // ความสัมพันธ์กับ Users
-    public function author()
-    {
-        return $this->belongsTo(UserModel::class, 'author_id', 'user_id');
-    }
+   public function author() { return $this->belongsTo(\App\Models\UserModel::class, 'author_id','user_id'); }
+
 }

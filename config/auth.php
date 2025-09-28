@@ -70,7 +70,7 @@ return [
     |
     */
 
-'providers' => [
+/*'providers' => [
     'users' => [
         'driver' => 'eloquent',
         'model' => App\Models\User::class,
@@ -84,7 +84,17 @@ return [
         'driver' => 'eloquent',
         'model' => App\Models\AdminModel::class,
     ],
+],*/
+
+// config/auth.php
+'providers' => [
+    'users' => [
+        'driver' => 'eloquent',
+        'model'  => App\Models\UserModel::class, // ← ใช้โมเดลของคุณ
+    ],
 ],
+
+
 
 
     /*

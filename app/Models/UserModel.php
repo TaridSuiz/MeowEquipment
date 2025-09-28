@@ -2,20 +2,18 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
-class UserModel extends Model
+class UserModel extends Authenticatable
 {
+    use Notifiable;
+
     protected $table = 'tbl_user';
     protected $primaryKey = 'user_id';
     public $incrementing = true;
-    public $timestamps = true; // ✅ เปิดใช้ created_at, updated_at
+    public $timestamps = false;
 
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role',
-        'profile_img',
-    ];
+    protected $fillable = ['name','email','password','role','profile_img'];
+    protected $hidden   = ['password'];
 }

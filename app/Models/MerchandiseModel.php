@@ -8,13 +8,12 @@ class MerchandiseModel extends Model
 {
     protected $table = 'tbl_merchandise';
     protected $primaryKey = 'merchandise_id';
-    protected $fillable = [
-        'category_id','merchandise_name','description','price',
-        'brand','age_range','rating_avg','merchandise_image',
-        'link_store','created_at',
-    ];
     public $timestamps = false;
 
+    protected $fillable = [
+        'category_id','merchandise_name','description','price','brand',
+        'age_range','rating_avg','merchandise_image','link_store','created_at'
+    ];
 
     public function category()
     {

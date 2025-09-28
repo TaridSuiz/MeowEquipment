@@ -20,13 +20,9 @@ class ReviewModel extends Model
     ];
 
     // ความสัมพันธ์
-    public function user()
-    {
-        return $this->belongsTo(UserModel::class, 'user_id', 'user_id');
-    }
 
-    public function merchandise()
-    {
-        return $this->belongsTo(MerchandiseModel::class, 'merchandise_id', 'merchandise_id');
-    }
+    public function user()        { return $this->belongsTo(\App\Models\UserModel::class, 'user_id','user_id'); }
+public function merchandise() { return $this->belongsTo(\App\Models\MerchandiseModel::class, 'merchandise_id','merchandise_id'); }
+
+    
 }
