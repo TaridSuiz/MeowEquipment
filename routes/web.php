@@ -4,11 +4,14 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CatagorieController;
 use App\Http\Controllers\MerchandiseController;
+use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\WishlistController;
 
 //home page
 Route::get('/', [UserController::class, 'index']);
@@ -46,6 +49,31 @@ Route::get('/merchandise/{id}', [MerchandiseController::class, 'edit'])->name('m
 Route::put('/merchandise/{id}', [MerchandiseController::class, 'update'])->name('merchandise.update');
 Route::delete('/merchandise/remove/{id}', [MerchandiseController::class, 'remove'])->name('merchandise.destroy');
 
+
+
+//review
+
+Route::get('/reviews', [ReviewController::class,'index'])->name('reviews.index');
+Route::get('/reviews/adding', [ReviewController::class,'adding'])->name('reviews.create');
+Route::post('/reviews', [ReviewController::class,'create'])->name('reviews.store');
+Route::get('/reviews/{id}', [ReviewController::class,'edit'])->name('reviews.edit');
+Route::put('/reviews/{id}', [ReviewController::class,'update'])->name('reviews.update');
+Route::delete('/reviews/remove/{id}', [ReviewController::class,'remove'])->name('reviews.destroy');
+
+//article
+Route::get('/article', [ArticleController::class, 'index'])->name('article.index');
+Route::get('/article/adding', [ArticleController::class, 'adding'])->name('article.create');
+Route::post('/article', [ArticleController::class, 'create'])->name('article.store');
+Route::get('/article/{id}', [ArticleController::class, 'edit'])->name('article.edit');
+Route::put('/article/{id}', [ArticleController::class, 'update'])->name('article.update');
+Route::delete('/article/remove/{id}', [ArticleController::class, 'remove'])->name('article.destroy');
+
+
+//wishlist
+Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+Route::get('/wishlist/adding', [WishlistController::class, 'adding'])->name('wishlist.create');
+Route::post('/wishlist', [WishlistController::class, 'create'])->name('wishlist.store');
+Route::delete('/wishlist/remove/{id}', [WishlistController::class, 'remove'])->name('wishlist.destroy');
 
 
 

@@ -42,7 +42,11 @@
             
             <a href="/category" class="list-group-item list-group-item-action"> - Category </a>
 
-             <a href="/merchandise" class="list-group-item list-group-item-action"> - Merchandise </a>
+            <a href="/merchandise" class="list-group-item list-group-item-action"> - Merchandise </a>
+
+            <a href="/reviews" class="list-group-item list-group-item-action"> - Reviews </a>
+            <a href="/article" class="list-group-item list-group-item-action"> - Article </a>
+            <a href="/wishlist" class="list-group-item list-group-item-action"> - Wishlist </a>
 
 
             
