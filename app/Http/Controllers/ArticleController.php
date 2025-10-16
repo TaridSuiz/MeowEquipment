@@ -2,143 +2,99 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Article;
 use App\Models\ArticleModel;
-use App\Models\UserModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Pagination\Paginator;
-use RealRashid\SweetAlert\Facades\Alert;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ArticleController extends Controller
 {
-    /** GET /article */
+    // GET /admin/articles
     public function index()
     {
         Paginator::useBootstrap();
-        $articles = ArticleModel::with('author')->orderBy('article_id', 'desc')->paginate(5);
+
+        $articles = ArticleModel::with('author')
+            ->orderBy('article_id', 'desc')
+            ->paginate(10);
+
         return view('articles.list', compact('articles'));
     }
 
-    /** GET /article/adding */
-    public function adding()
+    // GET /admin/articles/create
+    public function create()
     {
-        $authors = UserModel::all();
-        return view('articles.create', compact('authors'));
+        return view('articles.create');
     }
 
-    /** POST /article */
-    public function create(Request $request)
+    // POST /admin/articles
+    public function store(Request $request)
     {
-        $messages = [
-            'title.required'   => 'กรุณากรอกชื่อบทความ',
-            'content.required' => 'กรุณากรอกเนื้อหา',
-            'author_id.exists' => 'ผู้เขียนไม่ถูกต้อง',
-            'cover_image.image' => 'ไฟล์ต้องเป็นรูปภาพ',
-            'cover_image.mimes' => 'รองรับ jpeg, png, jpg เท่านั้น',
-            'cover_image.max'   => 'ไฟล์ต้องไม่เกิน 5MB',
-        ];
+        $request->validate([
+            'title'       => ['required','string','max:200'],
+            'content'     => ['required','string'],   // ถ้าคอลัมน์เป็น TEXT จะพอดี
+            'cover_image' => ['nullable','image','mimes:jpeg,png,jpg','max:5120'],
+        ]);
 
-        $validator = Validator::make($request->all(), [
-            'title'       => 'required|min:3',
-            'content'     => 'required',
-            'author_id'   => 'required|exists:tbl_user,user_id',
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
-        ], $messages);
-
-        if ($validator->fails()) {
-            return redirect('article/adding')->withErrors($validator)->withInput();
+        $path = null;
+        if ($request->hasFile('cover_image')) {
+            $path = $request->file('cover_image')->store('uploads/articles', 'public');
         }
 
-        try {
-            $imagePath = null;
-            if ($request->hasFile('cover_image')) {
-                $imagePath = $request->file('cover_image')->store('uploads/articles', 'public');
-            }
+        ArticleModel::create([
+            'title'       => trim($request->title),
+            'content'     => $request->content,
+            'author_id'   => Auth::id(),       // ผู้เขียน = admin ที่ล็อกอิน
+            'cover_image' => $path,
+            'created_at'  => now(),
+            'update_at'   => now(),
+        ]);
 
-            ArticleModel::create([
-                'title'       => strip_tags($request->title),
-                'content'     => $request->content,
-                'author_id'   => $request->author_id,
-                'cover_image' => $imagePath,
-                'created_at'  => now(),
-            ]);
-
-            Alert::success('เพิ่มบทความสำเร็จ');
-            return redirect('/article');
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        return redirect()->route('admin.articles.index')->with('success', 'เพิ่มบทความสำเร็จ');
     }
 
-    /** GET /article/{id} */
+    // GET /admin/articles/{article}/edit
     public function edit($id)
     {
-        try {
-            $article = ArticleModel::findOrFail($id);
-            $authors = UserModel::all();
-            return view('articles.edit', compact('article', 'authors'));
-        } catch (\Exception $e) {
-            return view('errors.404');
-        }
+        $article = ArticleModel::findOrFail($id);
+        return view('articles.edit', compact('article'));
     }
 
-    /** PUT /article/{id} */
+    // PUT/PATCH /admin/articles/{article}
     public function update($id, Request $request)
     {
-        $messages = [
-            'title.required'   => 'กรุณากรอกชื่อบทความ',
-            'content.required' => 'กรุณากรอกเนื้อหา',
-            'author_id.exists' => 'ผู้เขียนไม่ถูกต้อง',
-            'cover_image.image' => 'ไฟล์ต้องเป็นรูปภาพ',
-            'cover_image.mimes' => 'รองรับ jpeg, png, jpg เท่านั้น',
-            'cover_image.max'   => 'ไฟล์ต้องไม่เกิน 5MB',
-        ];
+        $request->validate([
+            'title'       => ['required','string','max:200'],
+            'content'     => ['required','string'],
+            'cover_image' => ['nullable','image','mimes:jpeg,png,jpg','max:5120'],
+        ]);
 
-        $validator = Validator::make($request->all(), [
-            'title'       => 'required|min:3',
-            'content'     => 'required',
-            'author_id'   => 'required|exists:tbl_user,user_id',
-            'cover_image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
-        ], $messages);
+        $article = ArticleModel::findOrFail($id);
 
-        if ($validator->fails()) {
-            return redirect('article/' . $id)->withErrors($validator)->withInput();
-        }
-
-        try {
-            $article = ArticleModel::findOrFail($id);
-
-            if ($request->hasFile('cover_image')) {
-                if ($article->cover_image && Storage::disk('public')->exists($article->cover_image)) {
-                    Storage::disk('public')->delete($article->cover_image);
-                }
-                $article->cover_image = $request->file('cover_image')->store('uploads/articles', 'public');
+        if ($request->hasFile('cover_image')) {
+            if ($article->cover_image && Storage::disk('public')->exists($article->cover_image)) {
+                Storage::disk('public')->delete($article->cover_image);
             }
-
-            $article->title   = strip_tags($request->title);
-            $article->content = $request->content;
-            $article->author_id = $request->author_id;
-            $article->updated_at = now();
-
-            $article->save();
-
-            Alert::success('แก้ไขบทความสำเร็จ');
-            return redirect('/article');
-        } catch (\Exception $e) {
-            return view('errors.404');
+            $article->cover_image = $request->file('cover_image')->store('uploads/articles', 'public');
         }
+
+        $article->title     = trim($request->title);
+        $article->content   = $request->content;
+        $article->update_at = now();
+        $article->save();
+
+        return redirect()->route('admin.articles.index')->with('success', 'แก้ไขบทความสำเร็จ');
     }
 
-    /** DELETE /article/remove/{id} */
-    public function remove($id)
+    // DELETE /admin/articles/{article}
+    public function destroy($id)
     {
         try {
             $article = ArticleModel::find($id);
-
             if (!$article) {
-                Alert::error('ไม่พบบทความ');
-                return redirect('/article');
+                return redirect()->route('admin.articles.index')->with('error','ไม่พบบทความ');
             }
 
             if ($article->cover_image && Storage::disk('public')->exists($article->cover_image)) {
@@ -147,11 +103,9 @@ class ArticleController extends Controller
 
             $article->delete();
 
-            Alert::success('ลบบทความสำเร็จ');
-            return redirect('/article');
-        } catch (\Exception $e) {
-            Alert::error('เกิดข้อผิดพลาด: ' . $e->getMessage());
-            return redirect('/article');
+            return redirect()->route('admin.articles.index')->with('success','ลบบทความสำเร็จ');
+        } catch (\Throwable $e) {
+            return redirect()->route('admin.articles.index')->with('error','ลบไม่สำเร็จ: '.$e->getMessage());
         }
     }
 }

@@ -1,83 +1,53 @@
 @extends('home')
 
 @section('content')
-  <h3 class="mb-3">
-    :: Category Management ::
-    <a href="{{ route('category.create') }}" class="btn btn-primary btn-sm">Add Category</a>
-  </h3>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">:: Categories ::</h3>
+  <a href="{{ route('admin.categories.create') }}" class="btn btn-primary btn-sm">Add</a>
+</div>
 
-  {{-- Search --}}
-  <form method="GET" action="{{ route('category.index') }}" class="row g-2 mb-3">
-    <div class="col-md-4">
-      <input type="text" name="s" class="form-control" placeholder="ค้นหาชื่อ/รายละเอียดหมวดหมู่"
-             value="{{ request('s') }}">
-    </div>
-    <div class="col-md-2">
-      <button class="btn btn-outline-secondary" type="submit">ค้นหา</button>
-      @if(request()->has('s') && request('s')!=='')
-        <a href="{{ route('category.index') }}" class="btn btn-link">ล้าง</a>
-      @endif
-    </div>
-  </form>
+<table class="table table-bordered table-striped align-middle">
+  <thead class="table-light">
+    <tr>
+      <th class="text-center" style="width: 80px">#ID</th>
+      <th>Category name</th>
+      <th>Description</th>
+      <th class="text-center" style="width: 200px">Created at</th>
+      <th class="text-center" style="width: 180px">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+  @forelse ($categories as $cat)
+    <tr>
+      <td class="text-center">{{ $categories->firstItem() + $loop->index}}</td>
+      <td>{{ $cat->category_name }}</td>
+      <td>{{ $cat->description }}</td>
+      <td class="text-center">{{ $cat->created_at }}</td>
+      <td class="text-center">
+        <a href="{{ route('admin.categories.edit', $cat->category_id) }}" class="btn btn-sm btn-warning">Edit</a>
+        <form action="{{ route('admin.categories.destroy', $cat->category_id) }}" method="POST" class="d-inline delete-form">
+          @csrf @method('DELETE')
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+  @empty
+    <tr><td colspan="5" class="text-center text-muted">— No data —</td></tr>
+  @endforelse
+  </tbody>
+</table>
 
-  <table class="table table-bordered table-striped table-hover">
-    <thead>
-      <tr class="table-info">
-        <th class="text-center" width="7%">No.</th>
-        <th>ชื่อหมวดหมู่</th>
-        <th>รายละเอียด</th>
-        <th class="text-center" width="18%">วันที่เพิ่ม</th>
-        <th class="text-center" width="8%">แก้ไข</th>
-        <th class="text-center" width="8%">ลบ</th>
-      </tr>
-    </thead>
-    <tbody>
-      @forelse($categories as $row)
-        <tr>
-          <td class="text-center">
-            {{ ($categories->currentPage()-1)*$categories->perPage() + $loop->iteration }}
-          </td>
-          <td>{{ $row->category_name }}</td>
-          <td>{{ \Illuminate\Support\Str::limit($row->description, 120, '...') }}</td>
-          <td class="text-center">{{ \Carbon\Carbon::parse($row->created_at)->format('Y-m-d H:i') }}</td>
-          <td class="text-center">
-            <a href="{{ route('category.edit', $row->category_id) }}" class="btn btn-warning btn-sm">แก้ไข</a>
-          </td>
-          <td class="text-center">
-            <form action="{{ route('category.destroy', $row->category_id) }}" method="POST" class="form-delete d-inline">
-              @csrf @method('DELETE')
-              <button type="submit" class="btn btn-danger btn-sm">ลบ</button>
-            </form>
-          </td>
-        </tr>
-      @empty
-        <tr>
-          <td colspan="6" class="text-center text-muted">ไม่พบข้อมูล</td>
-        </tr>
-      @endforelse
-    </tbody>
-  </table>
-
-  {{ $categories->links() }}
+<div>{{ $categories->links() }}</div>
 @endsection
 
 @push('scripts')
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('form.form-delete').forEach(form => {
-        form.addEventListener('submit', e => {
-          e.preventDefault();
-          Swal.fire({
-            title: 'ยืนยันการลบ?',
-            text: 'คุณต้องการลบหมวดหมู่นี้หรือไม่',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'ลบ',
-            cancelButtonText: 'ยกเลิก'
-          }).then(res => { if (res.isConfirmed) form.submit(); });
-        });
-      });
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.delete-form').forEach(f => {
+    f.addEventListener('submit', e => {
+      if (!confirm('ยืนยันลบหมวดหมู่?')) e.preventDefault();
     });
-  </script>
+  });
+});
+</script>
 @endpush

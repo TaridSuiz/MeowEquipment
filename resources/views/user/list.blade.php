@@ -1,82 +1,115 @@
+{{-- resources/views/user/list.blade.php --}}
 @extends('home')
 
-@section('content')
-  <h3>
-    :: User Management ::
-    <a href="{{ route('user.create') }}" class="btn btn-primary btn-sm">Add User</a>
-  </h3>
+@section('css_before')
+<style>
+  .toolbar{ gap:.5rem; flex-wrap:wrap; }
+  .toolbar .form-control, .toolbar .form-select{ height: 42px; }
+  .table thead th{ white-space:nowrap; }
+  .table-responsive{ border-radius:.75rem; box-shadow:0 .25rem .75rem rgba(0,0,0,.06); }
+  .badge-role{ text-transform:capitalize; }
+  .btn-icon{ padding:.25rem .5rem; }
+  @media (max-width: 576px){
+    .action-col .btn{ width:100%; margin-bottom:.35rem; }
+  }
+</style>
+@endsection
 
-  <table class="table table-bordered table-striped table-hover">
-    <thead>
-      <tr class="table-info">
-        <th class="text-center" width="6%">No.</th>
-        <th width="10%">Avatar</th>
-        <th width="22%">Name</th>
-        <th width="28%">Email</th>
-        <th class="text-center" width="10%">Role</th>
-        <th class="text-center" width="8%">Edit</th>
-        <th class="text-center" width="12%">Reset PW</th>
-        <th class="text-center" width="8%">Delete</th>
-      </tr>
-    </thead>
-    <tbody>
-      @forelse($users as $row)
+@section('content')
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">:: User Management ::</h3>
+    <a href="{{ route('admin.users.create') }}" class="btn btn-primary btn-sm">Add</a>
+  </div>
+
+  {{-- Toolbar: Search + Per Page --}}
+  <form method="GET" action="{{ url()->current() }}" class="d-flex toolbar mb-3">
+    <div class="input-group" style="max-width:520px;">
+      <span class="input-group-text">ค้นหา</span>
+      <input type="text" class="form-control" name="q" placeholder="ชื่อ / อีเมล"
+             value="{{ request('q') }}">
+      <button class="btn btn-outline-secondary" type="submit">Go</button>
+      @if(request()->hasAny(['q','per_page']))
+        <a href="{{ url()->current() }}" class="btn btn-outline-dark">Reset</a>
+      @endif
+    </div>
+
+    <div class="ms-auto d-flex align-items-center" style="gap:.5rem;">
+      <label class="text-muted">Rows/page</label>
+      <select name="per_page" class="form-select" onchange="this.form.submit()">
+        @php $pp = (int) request('per_page', $users->perPage()); @endphp
+        @foreach([10,15,20,30,50] as $opt)
+          <option value="{{ $opt }}" @selected($pp===$opt)>{{ $opt }}</option>
+        @endforeach
+      </select>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover align-middle mb-0">
+      <thead class="table-info">
         <tr>
-          <td class="text-center">
-            {{ ($users->currentPage()-1)*$users->perPage() + $loop->iteration }}
-          </td>
+          <th class="text-center" width="6%">#</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th class="text-center" width="10%">Role</th>
+          <th class="text-center" width="26%">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+      @forelse ($users as $i => $user)
+        <tr>
+          <td class="text-center">{{ $users->firstItem() + $i }}</td>
           <td>
-            @if($row->profile_img)
-              <img src="{{ asset('storage/'.$row->profile_img) }}" alt="avatar" width="60" height="60" style="object-fit:cover;border-radius:8px;">
-            @else
-              <span class="text-muted">-</span>
+            <div class="fw-semibold">{{ $user->name }}</div>
+            @if(!empty($user->created_at))
+              <small class="text-muted">Joined: {{ \Carbon\Carbon::parse($user->created_at)->format('Y-m-d') }}</small>
             @endif
           </td>
-          <td>{{ $row->name }}</td>
-          <td>{{ $row->email }}</td>
-          <td class="text-center">
-            <span class="badge {{ $row->role === 'admin' ? 'bg-danger' : 'bg-secondary' }}">{{ $row->role }}</span>
+          <td>
+            <a href="mailto:{{ $user->email }}">{{ $user->email }}</a>
           </td>
           <td class="text-center">
-            <a class="btn btn-warning btn-sm" href="{{ route('user.edit', $row->user_id) }}">Edit</a>
+            @php $isAdmin = ($user->role === 'admin'); @endphp
+            <span class="badge badge-role bg-{{ $isAdmin ? 'success' : 'secondary' }}">
+              {{ $user->role ?? 'user' }}
+            </span>
           </td>
-          <td class="text-center">
-            <a class="btn btn-info btn-sm" href="{{ route('user.reset', $row->user_id) }}">Reset</a>
-          </td>
-          <td class="text-center">
-            <form action="{{ route('user.destroy', $row->user_id) }}" method="POST" class="form-delete d-inline">
-              @csrf @method('DELETE')
-              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
-            </form>
+          <td class="text-center action-col">
+            <div class="d-inline-flex flex-wrap justify-content-center" style="gap:.35rem;">
+              <a class="btn btn-sm btn-warning" href="{{ route('admin.users.edit', $user->user_id) }}">Edit</a>
+              <a class="btn btn-sm btn-info" href="{{ route('admin.users.reset.edit', $user->user_id) }}">Reset</a>
+              <form action="{{ route('admin.users.destroy', $user->user_id) }}"
+                    method="POST" class="d-inline delete-form" data-user="{{ $user->name }}">
+                @csrf @method('DELETE')
+                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+              </form>
+            </div>
           </td>
         </tr>
       @empty
-        <tr>
-          <td colspan="8" class="text-center text-muted">No users</td>
-        </tr>
+        <tr><td colspan="5" class="text-center text-muted py-4">— No data —</td></tr>
       @endforelse
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </div>
 
-  {{ $users->links() }}
+  <div class="mt-2">
+    {{-- คง query string (q, per_page) ขณะเปลี่ยนหน้า --}}
+    {{ $users->withQueryString()->links('pagination::bootstrap-5') }}
+  </div>
 @endsection
 
-{{-- SweetAlert2 confirm --}}
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelectorAll('form.form-delete').forEach(form => {
-    form.addEventListener('submit', e => {
-      e.preventDefault();
-      Swal.fire({
-        title: 'ลบผู้ใช้?',
-        text: 'คุณต้องการลบผู้ใช้นี้หรือไม่',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'ลบ',
-        cancelButtonText: 'ยกเลิก'
-      }).then(res => { if (res.isConfirmed) form.submit(); });
+document.addEventListener('DOMContentLoaded', function () {
+  // ยืนยันก่อนลบ (Vanilla JS)
+  document.querySelectorAll('.delete-form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      const name = form.getAttribute('data-user') || 'this user';
+      if(!confirm(`ยืนยันลบผู้ใช้: ${name} ?`)){
+        e.preventDefault();
+        return false;
+      }
     });
   });
 });

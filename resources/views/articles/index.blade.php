@@ -1,7 +1,9 @@
-@extends('home')
+@extends('layouts.backend')
 
 @section('content')
-<h3 class="mb-3">บทความ</h3>
+<h3 class="mb-3" style="font-family: 'Poppins', sans-serif; font-weight: 600; color: #d60000;">
+   บทความ
+</h3>
 
 <form method="GET" action="{{ route('articles.index') }}" class="row g-2 mb-3">
   <div class="col-md-6">

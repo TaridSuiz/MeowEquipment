@@ -39,18 +39,42 @@ class ReviewController extends Controller
     }
 
     // user ลบเฉพาะรีวิวของตนเอง (authorize ผ่าน Gate)
+    // public function destroy($id)
+    // {
+    //     $review = ReviewModel::findOrFail($id);
+    //     $this->authorize('delete-review', $review);
+    //     $review->delete();
+
+    //     // อัปเดตค่าเฉลี่ย
+    //     $avg = ReviewModel::where('merchandise_id', $review->merchandise_id)->avg('rating');
+    //     MerchandiseModel::where('merchandise_id', $review->merchandise_id)->update(['rating_avg' => round($avg, 2)]);
+
+    //     return back()->with('success', 'ลบรีวิวแล้ว');
+    // }
     public function destroy($id)
-    {
-        $review = ReviewModel::findOrFail($id);
-        $this->authorize('delete-review', $review);
-        $review->delete();
+{
+    $review = \App\Models\ReviewModel::findOrFail($id);
 
-        // อัปเดตค่าเฉลี่ย
-        $avg = ReviewModel::where('merchandise_id', $review->merchandise_id)->avg('rating');
-        MerchandiseModel::where('merchandise_id', $review->merchandise_id)->update(['rating_avg' => round($avg, 2)]);
+    // ลบได้เฉพาะเจ้าของรีวิว หรือ admin
+   // ลบได้เฉพาะเจ้าของรีวิว หรือ admin
+if (!Auth::check()) {
+    abort(403);
+}
 
-        return back()->with('success', 'ลบรีวิวแล้ว');
-    }
+$isOwner = (int) Auth::id() === (int) $review->user_id;
+$isAdmin = (Auth::user()->role ?? null) === 'admin';
+
+if (!$isOwner && !$isAdmin) {
+    abort(403, 'Unauthorized');
+}
+
+
+    $review->delete();
+
+    return back()->with('success', 'ลบรีวิวแล้ว');
+}
+
+
 
     // แอดมินลบรีวิว
     public function adminDestroy($id)

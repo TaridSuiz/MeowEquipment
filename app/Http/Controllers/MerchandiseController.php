@@ -2,211 +2,143 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\MerchandiseModel;
 use App\Models\CategorieModel;
+use App\Models\Merchandise;
+use App\Models\Category;
+use App\Models\MerchandiseModel;
+use App\Models\ReviewModel;
+use App\Models\WishlistModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Pagination\Paginator;
-use Illuminate\Validation\Rule;
-use RealRashid\SweetAlert\Facades\Alert;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class MerchandiseController extends Controller
 {
-    /** GET /merchandise */
-    public function index(Request $request)
+    // GET /admin/merchandise
+    public function index()
     {
         Paginator::useBootstrap();
+        $items = MerchandiseModel::with('category')
+            ->orderBy('merchandise_id','desc')
+            ->paginate(10);
 
-        $q = MerchandiseModel::with('category');
-
-        // ค้นหา/กรอง
-        if ($s = trim($request->get('s', ''))) {
-            $q->where(function ($w) use ($s) {
-                $w->where('merchandise_name', 'like', "%{$s}%")
-                  ->orWhere('brand', 'like', "%{$s}%");
-            });
-        }
-        if ($cat = $request->get('category_id')) {
-            $q->where('category_id', $cat);
-        }
-        if ($min = $request->get('min_price')) {
-            $q->where('price', '>=', $min);
-        }
-        if ($max = $request->get('max_price')) {
-            $q->where('price', '<=', $max);
-        }
-        if ($minR = $request->get('min_rating')) {
-            $q->where('rating_avg', '>=', $minR);
-        }
-
-        $merchandise = $q->orderBy('merchandise_id', 'desc')
-                         ->paginate(10)->withQueryString();
-
-        $categories = CategorieModel::orderBy('category_name')->get();
-
-        return view('merchandise.list', compact('merchandise', 'categories'));
+        return view('merchandise.list', compact('items'));
     }
 
-    /** GET /merchandise/adding */
-    public function adding()
+    // GET /admin/merchandise/create
+    public function create()
     {
-        $categories = CategorieModel::orderBy('category_name')->get();
+        $categories = CategorieModel::orderBy('category_name')->get(['category_id','category_name']);
         return view('merchandise.create', compact('categories'));
     }
 
-    /** POST /merchandise */
-    public function create(Request $request)
+    // POST /admin/merchandise
+    public function store(Request $request)
     {
-        $messages = [
-            'merchandise_name.required' => 'กรุณากรอกชื่อสินค้า',
-            'merchandise_name.min'      => 'ชื่อต้องมีอย่างน้อย :min ตัวอักษร',
-            'merchandise_name.unique'   => 'ชื่อนี้มีอยู่แล้ว',
-            'category_id.required'      => 'กรุณาเลือกหมวดหมู่',
-            'category_id.exists'        => 'หมวดหมู่ไม่ถูกต้อง',
-            'price.numeric'             => 'กรุณากรอกราคาเป็นตัวเลข',
-            'rating_avg.numeric'        => 'เรตติ้งต้องเป็นตัวเลข',
-            'rating_avg.max'            => 'เรตติ้งสูงสุด 5',
-            'merchandise_image.image'   => 'ไฟล์ต้องเป็นรูปภาพ',
-            'merchandise_image.mimes'   => 'รองรับ jpeg, png, jpg เท่านั้น',
-            'merchandise_image.max'     => 'ไฟล์ไม่เกิน 5MB',
-        ];
+        $request->validate([
+            'category_id'       => ['required','integer','exists:tbl_categories,category_id'],
+            'merchandise_name'  => ['required','string','max:150'],
+            'description'       => ['nullable','string'],
+            'price'             => ['nullable','numeric'],
+            'brand'             => ['nullable','string','max:100'],
+            'age_range'         => ['nullable','string','max:50'],
+            'rating_avg'        => ['nullable','numeric'],
+            'link_store'        => ['nullable','string','max:255'],
+            'merchandise_image' => ['nullable','image','mimes:jpeg,png,jpg','max:5120'],
+        ]);
 
-        $validator = Validator::make($request->all(), [
-            'category_id'       => 'required|exists:tbl_categories,category_id',
-            'merchandise_name'  => 'required|min:3|unique:tbl_merchandise,merchandise_name',
-            'description'       => 'nullable|max:65535',
-            'price'             => 'nullable|numeric|min:0',
-            'brand'             => 'nullable|max:100',
-            'age_range'         => 'nullable|max:50',
-            'rating_avg'        => 'nullable|numeric|min:0|max:5',
-            'link_store'        => 'nullable|max:255',
-            'merchandise_image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
-        ], $messages);
-
-        if ($validator->fails()) {
-            return redirect('/merchandise/adding')->withErrors($validator)->withInput();
+        $imagePath = null;
+        if ($request->hasFile('merchandise_image')) {
+            $imagePath = $request->file('merchandise_image')->store('uploads/merchandise','public');
         }
 
-        try {
-            $imagePath = null;
-            if ($request->hasFile('merchandise_image')) {
-                $imagePath = $request->file('merchandise_image')->store('uploads/merchandise', 'public');
-            }
+        MerchandiseModel::create([
+            'category_id'       => $request->category_id,
+            'merchandise_name'  => trim($request->merchandise_name),
+            'description'       => $request->description,
+            'price'             => $request->price,
+            'brand'             => $request->brand,
+            'age_range'         => $request->age_range,
+            'rating_avg'        => $request->rating_avg,
+            'merchandise_image' => $imagePath,
+            'link_store'        => $request->link_store,
+            'created_at'        => now(),
+        ]);
 
-            MerchandiseModel::create([
-                'category_id'       => $request->category_id,
-                'merchandise_name'  => strip_tags($request->merchandise_name),
-                'description'       => $request->filled('description') ? strip_tags($request->description) : null,
-                'price'             => $request->price,
-                'brand'             => $request->brand,
-                'age_range'         => $request->age_range,
-                'rating_avg'        => $request->rating_avg,
-                'link_store'        => $request->link_store,
-                'merchandise_image' => $imagePath,
-                'created_at'        => now(),
-            ]);
-
-            Alert::success('เพิ่มสินค้าเรียบร้อย');
-            return redirect('/merchandise');
-        } catch (\Exception $e) {
-            return view('errors.404');
-        }
+        return redirect()->route('admin.merchandise.index')->with('success','เพิ่มสินค้าเรียบร้อย');
     }
 
-    /** GET /merchandise/{id} */
+    // GET /admin/merchandise/{merchandise}/edit
     public function edit($id)
     {
-        try {
-            $merchandise = MerchandiseModel::findOrFail($id);
-            $categories  = CategorieModel::orderBy('category_name')->get();
-            return view('merchandise.edit', compact('merchandise', 'categories'));
-        } catch (\Exception $e) {
-            return view('errors.404');
-        }
+        $item = MerchandiseModel::findOrFail($id);
+        $categories = CategorieModel::orderBy('category_name')->get(['category_id','category_name']);
+        return view('merchandise.edit', compact('item','categories'));
     }
 
-    /** PUT /merchandise/{id} */
+    // PUT/PATCH /admin/merchandise/{merchandise}
     public function update($id, Request $request)
     {
-        $messages = [
-            'merchandise_name.required' => 'กรุณากรอกชื่อสินค้า',
-            'category_id.required'      => 'กรุณาเลือกหมวดหมู่',
-            'price.numeric'             => 'กรุณากรอกราคาเป็นตัวเลข',
-        ];
+        $request->validate([
+            'category_id'       => ['required','integer','exists:tbl_categories,category_id'],
+            'merchandise_name'  => ['required','string','max:150'],
+            'description'       => ['nullable','string'],
+            'price'             => ['nullable','numeric'],
+            'brand'             => ['nullable','string','max:100'],
+            'age_range'         => ['nullable','string','max:50'],
+            'rating_avg'        => ['nullable','numeric'],
+            'link_store'        => ['nullable','string','max:255'],
+            'merchandise_image' => ['nullable','image','mimes:jpeg,png,jpg','max:5120'],
+        ]);
 
-        $validator = Validator::make($request->all(), [
-            'category_id'       => 'required|exists:tbl_categories,category_id',
-            'merchandise_name'  => [
-                'required','min:3',
-                Rule::unique('tbl_merchandise','merchandise_name')->ignore($id, 'merchandise_id')
-            ],
-            'description'       => 'nullable|max:65535',
-            'price'             => 'nullable|numeric|min:0',
-            'brand'             => 'nullable|max:100',
-            'age_range'         => 'nullable|max:50',
-            'rating_avg'        => 'nullable|numeric|min:0|max:5',
-            'link_store'        => 'nullable|max:255',
-            'merchandise_image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
-        ], $messages);
+        $item = MerchandiseModel::findOrFail($id);
 
-        if ($validator->fails()) {
-            return redirect('/merchandise/' . $id)->withErrors($validator)->withInput();
-        }
-
-        try {
-            $merchandise = MerchandiseModel::findOrFail($id);
-
-            // อัปโหลดรูปใหม่ถ้ามี
-            if ($request->hasFile('merchandise_image')) {
-                if ($merchandise->merchandise_image && Storage::disk('public')->exists($merchandise->merchandise_image)) {
-                    Storage::disk('public')->delete($merchandise->merchandise_image);
-                }
-                $merchandise->merchandise_image = $request->file('merchandise_image')->store('uploads/merchandise', 'public');
+        if ($request->hasFile('merchandise_image')) {
+            if ($item->merchandise_image && Storage::disk('public')->exists($item->merchandise_image)) {
+                Storage::disk('public')->delete($item->merchandise_image);
             }
-
-            // อัปเดตฟิลด์อื่น ๆ
-            $merchandise->category_id       = $request->category_id;
-            $merchandise->merchandise_name  = strip_tags($request->merchandise_name);
-            $merchandise->description       = $request->filled('description') ? strip_tags($request->description) : null;
-            $merchandise->price             = $request->price;
-            $merchandise->brand             = $request->brand;
-            $merchandise->age_range         = $request->age_range;
-            $merchandise->rating_avg        = $request->rating_avg;
-            $merchandise->link_store        = $request->link_store;
-
-            $merchandise->save();
-
-            Alert::success('อัปเดตข้อมูลสำเร็จ');
-            return redirect('/merchandise');
-        } catch (\Exception $e) {
-            return view('errors.404');
+            $item->merchandise_image = $request->file('merchandise_image')->store('uploads/merchandise','public');
         }
+
+        $item->update([
+            'category_id'       => $request->category_id,
+            'merchandise_name'  => trim($request->merchandise_name),
+            'description'       => $request->description,
+            'price'             => $request->price,
+            'brand'             => $request->brand,
+            'age_range'         => $request->age_range,
+            'rating_avg'        => $request->rating_avg,
+            'link_store'        => $request->link_store,
+        ]);
+
+        return redirect()->route('admin.merchandise.index')->with('success','แก้ไขสินค้าเรียบร้อย');
     }
 
-    /** DELETE /merchandise/remove/{id} */
-    public function remove($id)
+    // DELETE /admin/merchandise/{merchandise}
+    public function destroy($id)
     {
         try {
-            $merchandise = MerchandiseModel::find($id);
+            DB::transaction(function () use ($id) {
+                $item = MerchandiseModel::findOrFail($id);
 
-            if (!$merchandise) {
-                Alert::error('ไม่พบสินค้า');
-                return redirect('/merchandise');
-            }
+                // 1) ลบลูก: reviews & wishlists ของสินค้านี้
+                ReviewModel::where('merchandise_id', $item->merchandise_id)->delete();
+                // ถ้าไม่มี wishlist หรือไม่ใช้ ฟังก์ชันนี้ ลบบรรทัดนี้ออกได้
+                WishlistModel::where('merchandise_id', $item->merchandise_id)->delete();
 
-            // ลบไฟล์รูปถ้ามี
-            if ($merchandise->merchandise_image && Storage::disk('public')->exists($merchandise->merchandise_image)) {
-                Storage::disk('public')->delete($merchandise->merchandise_image);
-            }
+                // 2) ลบไฟล์รูปถ้ามี
+                if ($item->merchandise_image && Storage::disk('public')->exists($item->merchandise_image)) {
+                    Storage::disk('public')->delete($item->merchandise_image);
+                }
 
-            $merchandise->delete();
+                // 3) ลบตัวสินค้า
+                $item->delete();
+            });
 
-            Alert::success('ลบสินค้าเรียบร้อย');
-            return redirect('/merchandise');
-        } catch (\Exception $e) {
-            Alert::error('เกิดข้อผิดพลาด: ' . $e->getMessage());
-            return redirect('/merchandise');
+            return redirect()->route('admin.merchandise.index')->with('success','ลบสินค้าและรีวิวที่เกี่ยวข้องแล้ว');
+        } catch (\Throwable $e) {
+            return redirect()->route('admin.merchandise.index')->with('error','ลบไม่สำเร็จ: '.$e->getMessage());
         }
     }
 }

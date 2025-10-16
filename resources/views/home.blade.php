@@ -21,11 +21,6 @@
 
 {{-- ตัวอย่างใน navbar/header --}}
 @auth
-  <form action="{{ route('logout') }}" method="POST" class="d-inline">
-    @csrf
-    <button class="btn btn-outline-secondary btn-sm">
-      Logout ({{ auth()->user()->name }})
-    </button>
   </form>
 @else
   <a href="{{ route('login') }}" class="btn btn-primary btn-sm">Login</a>

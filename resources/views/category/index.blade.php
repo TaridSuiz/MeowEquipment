@@ -1,0 +1,33 @@
+@extends('layouts.backend')
+
+@section('content')
+  <h3 class="mb-3">หมวด: {{ $category->category_name }}</h3>
+
+  <div class="row row-cols-1 row-cols-md-2 g-3">
+    @forelse($items as $it)
+      <div class="col">
+        <div class="card h-100">
+          @if(!empty($it->merchandise_image))
+            <img src="{{ asset('storage/'.$it->merchandise_image) }}" class="card-img-top" style="height:180px;object-fit:cover">
+          @endif
+          <div class="card-body">
+            <h5 class="card-title mb-1">{{ $it->merchandise_name }}</h5>
+            <div class="text-muted small mb-2">
+              หมวด: {{ $it->category->category_name ?? '-' }}
+              • คะแนน: {{ number_format($it->rating_avg ?? 0,1) }}
+              @if($it->price) • ราคา: ฿{{ number_format($it->price,2) }} @endif
+            </div>
+            <p class="card-text">{{ \Illuminate\Support\Str::limit($it->description, 110) }}</p>
+            <a href="{{ route('shop.show', $it->merchandise_id) }}" class="btn btn-sm btn-outline-primary">ดูรายละเอียด</a>
+          </div>
+        </div>
+      </div>
+    @empty
+      <div class="col"><div class="alert alert-secondary">ยังไม่มีสินค้าในหมวดนี้</div></div>
+    @endforelse
+  </div>
+
+  <div class="mt-3">
+    {{ $items->links() }}
+  </div>
+@endsection

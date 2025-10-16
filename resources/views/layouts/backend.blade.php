@@ -15,34 +15,109 @@
     @yield('css_before')
 
     <style>
-      .sidebar .list-group-item.active {
-        background-color:#0d6efd;
-        border-color:#0d6efd;
+      /* ===== Brand & Base ===== */
+      :root{
+        --brand:#aa7c7a;
+        --accent:#d60000;
+        --soft:#fbcbcc;
+        --ink:#333;
       }
-      .sidebar .list-group-item {
+      html,body{ background:#f8f9fa; color:var(--ink); }
+
+      /* ===== Header ===== */
+      .site-title{
+        font-family:'Poppins',system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans Thai",sans-serif;
+        font-weight:700;
+        font-size:clamp(1.25rem, 2.2vw + .6rem, 1.8rem);
+        color:var(--brand);
+        text-shadow:2px 2px 4px rgba(0,0,0,.08);
+        line-height:1.2;
+        transition:transform .25s ease, color .25s ease;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .site-title:hover{ transform:scale(1.02); }
+      .site-title::after{ content:" 🐾"; font-size:1.2em }
+
+      /* ===== Sidebar (desktop) ===== */
+      .sidebar{
+        padding:12px;
+        background:#fff;
+        border-radius:.75rem;
+        box-shadow:0 0 1rem rgba(0,0,0,.06);
+      }
+      .sidebar .list-group-item{
+        background:#fff;
+        border-radius:.5rem;
+        margin-bottom:.75rem;
+        padding:.6rem .9rem;
+        font-weight:600;
         display:flex; align-items:center; justify-content:space-between;
+        transition:background-color .2s ease, transform .12s ease;
       }
-      .user-chip {
-        font-size:.95rem; font-weight:600;
+      .sidebar .list-group-item:hover{ background:#f7f7f7 }
+      .sidebar .list-group-item-action.active{
+        background-color:var(--accent); color:#fff; border-color:var(--accent);
       }
-      .role-badge {
-        font-size:.7rem;
+      .sidebar .list-group-item.active{
+        background-color:#f8f9fa; color:var(--accent);
       }
+      .role-badge{ font-size:.75rem; font-weight:700 }
+
+      /* ===== Buttons ===== */
+      .btn-outline-primary{
+        color:var(--accent); border-color:var(--accent);
+      }
+      .btn-outline-primary:hover{
+        background:var(--accent); color:#fff;
+      }
+
+      /* ===== Cards / Alerts ===== */
+      .alert{ border-radius:1rem; box-shadow:0 .5rem 1rem rgba(0,0,0,.08) }
+
+      /* ===== Offcanvas (mobile sidebar) ===== */
+      .offcanvas-sidebar .list-group-item{ margin-bottom:.5rem }
+
+      /* ===== Responsive touch targets ===== */
+      @media (max-width: 575.98px){
+        .list-group-item{ padding:.85rem 1rem }
+        .btn, .btn-sm{ padding:.6rem .9rem; font-size:.95rem }
+      }
+
+      /* iPad landscape tweaks */
+      @media (min-width:768px) and (max-width:1024px){
+        .sidebar .list-group-item{ padding:.65rem 1rem }
+      }
+
+      /* Make content cards breathe a bit */
+      .content-wrap{ padding-block:1rem }
     </style>
   </head>
   <body>
 
-    {{-- แถบหัว --}}
+    {{-- Top bar (sticky on mobile) --}}
     <div class="container">
       <div class="row">
         <div class="col">
-          <div class="alert alert-success d-flex align-items-center justify-content-between mt-3" role="alert">
-            <h4 class="m-0">Back Office || Laravel 12 || ยินดีต้อนรับ</h4>
-
-            {{-- แสดงสถานะล็อกอิน + ปุ่มที่จำเป็น --}}
+          <div class="alert d-flex align-items-center justify-content-between mt-3 sticky-top"
+               style="top:12px; background-color: var(--soft);" role="alert">
             <div class="d-flex align-items-center gap-2">
+              {{-- Sidebar toggle appears on < md --}}
+              <button class="btn btn-dark d-md-none me-1"
+                      type="button"
+                      data-bs-toggle="offcanvas"
+                      data-bs-target="#mobileSidebar"
+                      aria-controls="mobileSidebar"
+                      aria-label="เปิดเมนู">
+                ☰
+              </button>
+              <h4 class="m-0 site-title">MeowEquipment || ยินดีต้อนรับ</h4>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
               @auth
-                <span class="user-chip">
+                <span class="user-chip d-none d-sm-inline">
                   {{ auth()->user()->name }}
                   @if(auth()->user()->role === 'admin')
                     <span class="badge bg-danger role-badge ms-1">ADMIN</span>
@@ -50,16 +125,6 @@
                     <span class="badge bg-secondary role-badge ms-1">USER</span>
                   @endif
                 </span>
-
-                {{-- ปุ่มไปหน้าโปรไฟล์ (ผู้ใช้แก้โปรไฟล์ตัวเอง) --}}
-                <a href="{{ route('profile.edit') }}"
-                   class="btn btn-outline-primary btn-sm">โปรไฟล์ของฉัน</a>
-
-                {{-- ปุ่มไปหน้าร้าน/บทความ (ฝั่งดูข้อมูลสาธารณะ) --}}
-                <a href="{{ route('shop.index') }}" class="btn btn-outline-secondary btn-sm">ไปหน้าสินค้า</a>
-                <a href="{{ route('articles.index') }}" class="btn btn-outline-secondary btn-sm">บทความ</a>
-
-                {{-- ปุ่มออกจากระบบ --}}
                 <form action="{{ route('logout') }}" method="POST" class="d-inline">
                   @csrf
                   <button class="btn btn-outline-dark btn-sm">ออกจากระบบ</button>
@@ -67,7 +132,7 @@
               @endauth
 
               @guest
-                <a href="{{ route('login') }}" class="btn btn-primary btn-sm">เข้าสู่ระบบ</a>
+                <a href="{{ route('login') }}" class="btn btn-success btn-sm">เข้าสู่ระบบ</a>
               @endguest
             </div>
           </div>
@@ -78,113 +143,152 @@
     {{-- header เฉพาะหน้า (ถ้ามี) --}}
     @yield('header')
 
-    <div class="container">
-      <div class="row">
+    <div class="container content-wrap">
+      <div class="row g-3">
+        {{-- Sidebar column (desktop/tablet) --}}
+        <div class="col-md-3 d-none d-md-block">
+          <aside class="sidebar">
 
-        {{-- เมนูด้านซ้าย --}}
-        <div class="col-md-3 sidebar">
+            {{-- เมนูหลัก (ทุกคนเห็นได้) --}}
+            <div class="list-group mb-3">
+              <a href="/dashboard"
+                class="list-group-item list-group-item-action {{ request()->routeIs('home.index') ? 'active' : '' }}">
+                Home
+              </a>
 
-          {{-- เมนูหลัก (ทุกคนเห็นได้) --}}
-          <div class="list-group mb-3">
-            <a href="{{ url('/') }}"
-               class="list-group-item list-group-item-action {{ request()->is('/') ? 'active' : '' }}">
-              Home
-            </a>
+              <a href="{{ route('shop.index') }}"
+                 class="list-group-item list-group-item-action {{ request()->is('shop*') ? 'active' : '' }}">
+                Merchandise
+              </a>
+              <a href="{{ route('articles.index') }}"
+                 class="list-group-item list-group-item-action {{ request()->is('articles*') ? 'active' : '' }}">
+                Article
+              </a>
 
-            {{-- ฝั่ง public (ดูของหน้าเว็บ) --}}
-            <a href="{{ route('shop.index') }}"
-               class="list-group-item list-group-item-action {{ request()->is('shop*') ? 'active' : '' }}">
-              สินค้า (หน้าเว็บ)
-            </a>
-            <a href="{{ route('articles.index') }}"
-               class="list-group-item list-group-item-action {{ request()->is('articles*') ? 'active' : '' }}">
-              บทความ (หน้าเว็บ)
-            </a>
+              @auth
+                <a href="{{ route('wishlist.index') }}"
+                   class="list-group-item list-group-item-action {{ request()->is('wishlist*') ? 'active' : '' }}">
+                  Wishlist
+                </a>
+                <a href="{{ route('profile.edit') }}"
+                   class="list-group-item list-group-item-action {{ request()->is('profile') ? 'active' : '' }}">
+                  Profile
+                </a>
+              @endauth
+            </div>
+
+            {{-- เมนูหลังบ้านสำหรับ ADMIN เท่านั้น --}}
+            @auth
+            @if(auth()->user()->role === 'admin')
+              <div class="list-group mb-3">
+                <div class="list-group-item active">Admin Management</div>
+
+                <div class="list-group-item">
+                  <span>Admin Users</span>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.users.create') }}">Edit</a>
+                </div>
+
+                <div class="list-group-item">
+                  <span>Categories</span>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.categories.index') }}">Edit</a>
+                </div>
+
+                <div class="list-group-item">
+                  <span>Merchandise</span>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.merchandise.index') }}">Edit</a>
+                </div>
+
+                <div class="list-group-item">
+                  <span>Articles</span>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.articles.index') }}">Edit</a>
+                </div>
+
+                <div class="list-group-item">
+                  <span>Dashboard</span>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.dashboard') }}">View</a>
+                </div>
+              </div>
+            @endif
+            @endauth
+
+            @yield('sidebarMenu')
+          </aside>
+        </div>
+
+        {{-- Mobile Offcanvas Sidebar --}}
+        <div class="offcanvas offcanvas-start offcanvas-sidebar d-md-none" tabindex="-1" id="mobileSidebar"
+             aria-labelledby="mobileSidebarLabel">
+          <div class="offcanvas-header" style="background:var(--soft)">
+            <h5 class="offcanvas-title" id="mobileSidebarLabel">เมนู</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="ปิด"></button>
+          </div>
+          <div class="offcanvas-body">
+            <div class="list-group mb-3">
+              <a href="/dashboard"
+                 class="list-group-item list-group-item-action {{ request()->routeIs('home.index') ? 'active' : '' }}"
+                 data-bs-dismiss="offcanvas">Home</a>
+
+              <a href="{{ route('shop.index') }}"
+                 class="list-group-item list-group-item-action {{ request()->is('shop*') ? 'active' : '' }}"
+                 data-bs-dismiss="offcanvas">Merchandise</a>
+
+              <a href="{{ route('articles.index') }}"
+                 class="list-group-item list-group-item-action {{ request()->is('articles*') ? 'active' : '' }}"
+                 data-bs-dismiss="offcanvas">Article</a>
+
+              @auth
+                <a href="{{ route('wishlist.index') }}"
+                   class="list-group-item list-group-item-action {{ request()->is('wishlist*') ? 'active' : '' }}"
+                   data-bs-dismiss="offcanvas">Wishlist</a>
+
+                <a href="{{ route('profile.edit') }}"
+                   class="list-group-item list-group-item-action {{ request()->is('profile') ? 'active' : '' }}"
+                   data-bs-dismiss="offcanvas">Profile</a>
+              @endauth
+            </div>
 
             @auth
-              {{-- เมนูผู้ใช้ที่ล็อกอิน (wishlist/โปรไฟล์) --}}
-              <a href="{{ route('wishlist.index') }}"
-                 class="list-group-item list-group-item-action {{ request()->is('wishlist*') ? 'active' : '' }}">
-                Wishlist
-              </a>
-              <a href="{{ route('profile.edit') }}"
-                 class="list-group-item list-group-item-action {{ request()->is('profile') ? 'active' : '' }}">
-                โปรไฟล์ของฉัน
-              </a>
-
-              {{-- ตาม requirement: เปรียบเทียบให้เฉพาะคนล็อกอินใช้ --}}
-              <a href="{{ route('shop.compare', ['items[]'=>1,'items[]'=>2]) }}"
-                 class="list-group-item list-group-item-action {{ request()->is('compare') ? 'active' : '' }}">
-                เปรียบเทียบสินค้า (เลือก 2 รายการ)
-              </a>
+            @if(auth()->user()->role === 'admin')
+              <div class="list-group mb-3">
+                <div class="list-group-item active">Admin Management</div>
+                <a class="list-group-item d-flex justify-content-between align-items-center"
+                   href="{{ route('admin.users.create') }}" data-bs-dismiss="offcanvas">
+                   <span>Admin Users</span><span class="btn btn-sm btn-outline-primary">Edit</span>
+                </a>
+                <a class="list-group-item d-flex justify-content-between align-items-center"
+                   href="{{ route('admin.categories.index') }}" data-bs-dismiss="offcanvas">
+                   <span>Categories</span><span class="btn btn-sm btn-outline-primary">Edit</span>
+                </a>
+                <a class="list-group-item d-flex justify-content-between align-items-center"
+                   href="{{ route('admin.merchandise.index') }}" data-bs-dismiss="offcanvas">
+                   <span>Merchandise</span><span class="btn btn-sm btn-outline-primary">Edit</span>
+                </a>
+                <a class="list-group-item d-flex justify-content-between align-items-center"
+                   href="{{ route('admin.articles.index') }}" data-bs-dismiss="offcanvas">
+                   <span>Articles</span><span class="btn btn-sm btn-outline-primary">Edit</span>
+                </a>
+                <a class="list-group-item d-flex justify-content-between align-items-center"
+                   href="{{ route('admin.dashboard') }}" data-bs-dismiss="offcanvas">
+                   <span>Dashboard</span><span class="btn btn-sm btn-outline-primary">View</span>
+                </a>
+              </div>
+            @endif
             @endauth
+
+            @yield('sidebarMenu')
           </div>
-
-          {{-- เมนูหลังบ้านสำหรับ ADMIN เท่านั้น --}}
-          @auth
-          @if(auth()->user()->role === 'admin')
-            <div class="list-group">
-              <div class="list-group-item bg-light fw-semibold">Admin Management</div>
-
-              {{-- Users --}}
-              <a href="{{ route('admin.users.index') }}"
-                 class="list-group-item list-group-item-action {{ request()->is('admin/users*') ? 'active' : '' }}">
-                Users
-                <span>
-                  <a href="{{ route('admin.users.create') }}" class="btn btn-sm btn-outline-primary">Add</a>
-                </span>
-              </a>
-
-              {{-- Categories --}}
-              <a href="{{ route('admin.categories.index') }}"
-                 class="list-group-item list-group-item-action {{ request()->is('admin/categories*') ? 'active' : '' }}">
-                Categories
-                <span>
-                  <a href="{{ route('admin.categories.create') }}" class="btn btn-sm btn-outline-primary">Add</a>
-                </span>
-              </a>
-
-              {{-- Merchandise --}}
-              <a href="{{ route('admin.merchandise.index') }}"
-                 class="list-group-item list-group-item-action {{ request()->is('admin/merchandise*') ? 'active' : '' }}">
-                Merchandise
-                <span>
-                  <a href="{{ route('admin.merchandise.create') }}" class="btn btn-sm btn-outline-primary">Add</a>
-                </span>
-              </a>
-
-              {{-- Articles (จัดการหลังบ้าน) --}}
-              <a href="{{ route('admin.articles.index') }}"
-                 class="list-group-item list-group-item-action {{ request()->is('admin/articles*') ? 'active' : '' }}">
-                Articles
-                <span>
-                  <a href="{{ route('admin.articles.create') }}" class="btn btn-sm btn-outline-primary">Add</a>
-                </span>
-              </a>
-
-              {{-- Review moderation (ลบ/ตรวจ) --}}
-              <a href="{{ route('admin.dashboard') }}"
-                 class="list-group-item list-group-item-action {{ request()->is('admin') ? 'active' : '' }}">
-                Review Moderation
-              </a>
-            </div>
-          @endif
-          @endauth
-
-          @yield('sidebarMenu')
         </div>
 
-        {{-- เนื้อหาหลัก --}}
-        <div class="col-md-9">
+        {{-- Main content --}}
+        <div class="col-12 col-md-9">
           @yield('content')
         </div>
-
       </div>
     </div>
 
-    {{-- ท้ายหน้า --}}
+    {{-- Footer --}}
     <footer class="mt-5 mb-2">
-      <p class="text-center">by devbanban.com @2025</p>
+      <p class="text-center m-0 small text-muted">by devbanban.com @2025</p>
     </footer>
 
     @yield('footer')
